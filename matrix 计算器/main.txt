@@ -1,0 +1,300 @@
+#include <iostream>
+#include <cstring>
+#include <sstream>
+#include <fstream>
+#include "matrix.h"
+
+using namespace std;
+
+void commandline(string& ifile1, string& op, string& ifile2, string& ofile,unsigned int argc, char **argv);
+void usage();
+int checkoutput(string& ofile);
+matrix readfile(string ifile);
+
+int main(unsigned int argc, char **argv)
+{
+   for(int x=1; x < argc ; x++)
+   {
+       if(!strcmp(argv[x],"matrix /h") || !strcmp(argv[x],"matrix /?"))
+       {
+           usage();
+           exit(0);
+       }
+   }
+   string ifile1;
+   string ifile2;
+   string ofile;
+   string op;
+   commandline(ifile1,op,ifile2,ofile,argc,argv);
+   matrix a = readfile(ifile1);
+   matrix b = readfile(ifile2);
+   matrix c;
+   try
+   {
+       switch(op[0])
+       {
+            case 'a' : c = a + b;break;
+            case 'm' : c = a * b;break;
+       }
+   }
+   catch(wrong error)
+   {
+       if(error == not_same_size)
+       {
+           cout<<"two matrix must have same size!"<<endl;
+           exit(0);
+       }
+       if(error == wrong_size)
+       {
+           cout<<"the col of matrix one is not equal to the row of matrix two!!"<<endl;
+           exit(0);
+       }
+   }
+
+   if (argc > 3)
+   {
+       cout <<"one = "<<endl<< a <<endl
+            <<"two = "<<endl<< b <<endl
+            <<"operate is " << op <<endl<<endl
+            <<"result = "<<endl<< c <<endl;
+   }
+   if (argc > 4)
+   {
+       ofstream out;
+       if (argc >5)
+       {
+           out.open(ofile, ios::binary);
+       }
+       else
+       {
+           int choice = 2;
+           while(choice == 2)
+               choice = checkoutput(ofile);
+           out.open(ofile.c_str(), ios::binary);
+       }
+       out << c;
+       out.close();
+   }
+   cout <<"done";
+   return 0;
+}
+
+void commandline(string &ifile1, string &op, string &ifile2, string &ofile, unsigned int argc, char **argv)
+{
+    if(argc == 1)
+    {
+        cout << "nothing input!!"<<endl;
+        usage();
+        exit(1);
+    }
+    if (argc == 2)
+    {
+        ifile1 = argv[1];
+        ifile1 = (ifile1 + ".mat").c_str();
+        ifstream in(ifile1);
+        if (in.good())
+        {
+            in.close();
+            system(("notepad " + ifile1).c_str());
+        }
+            else
+        {
+            ofstream ou;
+            ou.open(ifile1);
+            in.close();
+            ou.close();
+            system(("notepad " + ifile1).c_str());
+        }
+        try
+        {
+            cout << "Do you want to use Gaussian Elimination to solve equations?\n";
+            cout << "type Y/y for yes, or any other things to exit\n";
+            char choice;
+            cin >> choice;
+            if(choice == 'Y' || choice == 'y')
+            {
+                matrix other = readfile(ifile1);
+                other.triangle();
+                cout << "use Gaussian Elimination to solve the system of simultaneous linear equations:\n";
+                other.equation();
+            }
+            cout << "done";
+            system("pause");
+        }
+        catch(wrong error)
+        {
+            if(error == unable)
+            {
+                cout<<"matrix not satisfy Gaussian Elimination"<<endl
+                    <<"the columns must equal to rows + 1\n";
+                exit(0);
+            }
+            if(error == unsingular_mat)
+            {
+                cout<<"there are no or infinitely many solutions"<<endl;
+                exit(0);
+            }
+        }
+        exit(0);
+    }
+    if (argc == 3)
+    {
+        cout <<"error input"<<endl;
+        usage();
+        exit(1);
+    }
+    if (argc > 3)
+    {
+        if (strcmp(argv[2],"add") && strcmp(argv[2],"multiply"))
+        {
+            cout << "the operation is wrong!!"<<endl;
+            usage();
+            exit(1);
+        }
+        op = argv[2];
+        ifile1 = argv[1];
+        ifile1 = (ifile1 + ".mat").c_str();
+        ifile2 = argv[3];
+        ifile2 = (ifile2 + ".mat").c_str();
+        if (argc > 4)
+        {
+             ofile = argv[4];
+            ofile = (ofile + ".mat").c_str();
+        }
+        if (argc > 5)
+        {
+            if(strcmp(argv[5],"/f"))
+            {
+                cout << "the fifth parameter must be /f\n!!" <<endl;
+                usage();
+                exit(1);
+            }
+        }
+    }
+    if (argc > 6)
+    {
+        cout << "too many parameters!! "<<endl;
+        usage();
+        exit(1);
+    }
+}
+
+void usage()
+{
+    cout <<endl<< "usage:" <<endl
+         << "input matrix /h or matrix /? for help"<<endl
+         << "type in the order showed as follow and need at least one input"<<endl
+         << endl;
+    cout << "input file one name without .mat:"<<endl
+         << "input operation: words add or multiply only"<<endl
+         << "input file two name without .mat:"<<endl
+         << "intput output file name:"<<endl
+         << "if necessary: input /f to overwrite output file"<<endl;
+}
+
+int checkoutput(string& ofile)
+{
+    ifstream inf(ofile.c_str());
+    if(inf.good())
+    {
+        cout << "output file is already exist\n"
+             << "/e = overwrite\n"
+             << "/o = creat a new file with new name\n";
+        string choice;
+        getline(cin,choice);
+        const char *cho = choice.c_str();
+        if(strcmp("/e", cho) == 0) return 1;
+        else
+        {
+            if(strcmp("/o", cho) == 0)
+            {
+               cout << "please input a new name:\n";
+               getline(cin,ofile);
+               ofile =(ofile + ".mat").c_str();
+               return 2;
+            }
+            else
+            {
+               cout << "unknow input\n";
+               exit(1);
+            }
+       }
+    }
+    else return 1;
+}
+
+matrix readfile(string ifile)
+{
+    ifstream infile;
+    infile.open(ifile,ios::binary);
+    if (infile.good());
+    else
+    {
+        cout << "the file you want is not exist or not under this folder\n";
+        exit (1);
+    }
+    int row=0;
+    int col=0;
+    int colcheck=0;
+    string temp;
+    string smatrix;
+    while(getline(infile,temp))
+    {
+        for(int x=0; x<temp.size();x++)
+        {
+            if(row == 0)
+            {
+                if(isdigit(temp[x]))
+                {
+                    if(x == 0)
+                        col = col +1;
+                    else
+                        if((temp[x-1] ==' ') || (temp[x-1] =='-'))
+                            col = col +1;
+                }
+
+            }
+            else
+            {
+                if(isdigit(temp[x]))
+                {
+                    if(x == 0)
+                        colcheck += 1;
+                    else
+                        if((temp[x-1] ==' ') || (temp[x-1] =='-'))
+                            colcheck += 1;
+                }
+            }
+       }
+       if (row == 0 || col== colcheck)
+       {
+           row +=1;
+           colcheck = 0;
+           smatrix =smatrix + temp;
+       }
+       else
+          if(colcheck != 0)
+          {
+            cout << "column is not same at each row\n";
+            cout << "illegal matrix\n";
+            exit(0);
+          }
+    }
+    if(row == 1 && col == 1)
+    {
+        cout << "illegal matrix : both row and column is 1\n";
+        exit(0);
+    }
+    if(row == 0 && col == 0)
+    {
+        cout << "file input is empty\n";
+        exit(0);
+    }
+
+    matrix other(row,col);
+    stringstream ss;
+    ss << smatrix;
+    ss >> other;
+    return other;
+}
+

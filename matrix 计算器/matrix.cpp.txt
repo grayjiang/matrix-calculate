@@ -1,0 +1,404 @@
+#include "matrix.h"
+#include <vector>
+#include <iostream>
+#include <iomanip>
+#include <sstream>
+#include <cstring>
+
+using namespace std;
+
+fraction::fraction()
+{
+    num = 0;
+    denom = 1;
+}
+
+fraction :: fraction(int a, int b)
+{
+    num=a;
+    denom = b;
+}
+
+fraction::~fraction()
+{
+    num = 0;
+    denom = 1;
+}
+
+fraction :: fraction(const fraction &other)
+{
+    num = other.num;
+    denom = other.denom;
+}
+
+istream& operator>>(istream& in, fraction &f)
+{
+    char junk;
+    int sign= in.peek();
+    if (sign == 45)
+    {
+        in >> junk;
+    }
+    string type;
+    in >> type;
+    int length=type.size();
+    for(int x =0; x<length; x++)
+    {
+        in.putback(type[length-x-1]);
+    }
+    char pStr[length] ={0};
+    for(int y=0; y<length; y++)
+    {
+       pStr[y]=type[y];
+    }
+    char *tokenPtr=strtok(pStr," ");
+    string piece=tokenPtr;
+    int pos = piece.find(".");
+    if(pos != string::npos )
+    {
+        double b;
+        in >>b;
+        f = b;
+    }
+    else
+    {
+        in>>f.num;
+        int c= in.peek();
+        if (c == 47)
+        {
+             in>>junk>>f.denom;
+        }
+        else f.denom =1;
+    }
+    if (sign == 45)
+        f.num = f.num *-1;
+    return in;
+}
+
+ostream& operator<<(ostream& out, const fraction& f)
+{
+    string output;
+    stringstream ss;
+    ss << f.num;
+    if (f.denom != 1 && f.num != 0)
+    {
+        ss<<"/"<<f.denom;
+    }
+    ss >>output;
+    out << output;
+    return out;
+}
+
+fraction& fraction::operator=(const int& other)
+{
+    num = other;
+    denom = 1;
+    return *this;
+}
+
+fraction& fraction::operator=(const double& other)
+{
+    stringstream temp;
+    string sother;
+    temp << other;
+    temp >> sother;
+    int pow = 1;
+    int size = sother.size();
+    int pos = sother.find(".");
+    sother=sother.erase(pos,1);
+    temp.clear();
+    temp << sother;
+    int b;
+    temp >>b;
+    for (int x=0 ; x < size- pos -1 ; x++)
+        pow *=10;
+    num = b;
+    denom = pow;
+    reduce();
+    return *this;
+}
+
+fraction& fraction::operator=(const fraction& other)
+{
+    num = other.num;
+    denom = other.denom;
+    return *this;
+}
+
+fraction& fraction::operator-=(const fraction& other)
+{
+    num = num * other.denom - other.num * denom;
+    denom = other.denom * denom;
+    reduce();
+    return *this;
+}
+
+fraction& fraction::operator+=(const fraction& other)
+{
+    num = num * other.denom + other.num * denom;
+    denom =other.denom * denom;
+    reduce();
+    return *this;
+}
+
+fraction& fraction::operator/=(const fraction& other)
+{
+    num = num * other.denom;
+    denom =other.num * denom;
+    reduce();
+    return *this;
+}
+
+bool operator==(const fraction &x, const fraction &y)
+{
+   return x.num * y.denom == x.denom * y.num;
+}
+
+bool operator!=(const fraction &x, const fraction &y)
+{
+    return !(x == y);
+}
+
+bool operator>(const fraction &x, const fraction &y)
+{
+   return x.num * y.denom > x.denom * y.num;
+}
+
+fraction operator+(const fraction &x, const fraction &y)
+{
+    fraction z;
+    z.num = x.num * y.denom + y.num * x.denom;
+    z.denom = x.denom * y.denom;
+    z.reduce();
+    return z;
+}
+
+fraction operator*(const fraction &x, const fraction &y)
+{
+    fraction z;
+    z.num = x.num * y.num;
+    z.denom =y.denom * x.denom;
+    z.reduce();
+    return z;
+}
+
+fraction operator/(const fraction &x, const fraction &y)
+{
+    fraction z;
+    z.num = x.num * y.denom;
+    z.denom = x.denom * y.num;
+    z.reduce();
+    return z;
+}
+
+void  fraction:: reduce()
+{
+    int div;
+    div = gcd(num, denom);
+    div = abs(div);
+    num /= div;
+    denom /= div;
+    if((num < 0 && denom <0) ||(num > 0 && denom <0))
+    {
+        num *=-1;
+        denom *=-1;
+    }
+}
+
+int fraction::gcd(int p, int q)
+{
+    return q == 0 ? p : gcd(q, p%q);
+}
+
+matrix ::matrix(int row, int col)
+{
+    mat.resize(row);
+    for (int i =0; i <row; i++)
+    {
+        mat[i].resize(col);
+        for(int j=0; j<col; j++)
+            mat[i][j] = 0;
+    }
+}
+
+matrix ::~matrix()
+{
+    int row = mat.size();
+    int col = mat[0].size();
+    for(int i=0; i <row; i++)
+        for(int j=0; j<col; j++)
+             mat[i][j]=0;
+}
+
+void matrix ::triangle()
+{
+    int row = mat.size();
+    int col = mat[0].size();
+    if(col != row +1)throw unable;
+    int  k=0;
+    fraction max = mat[k][k];
+    int num=0;
+    bool flag=false;
+    while(k < row)
+    {
+        max = mat[k][k];
+        for(int i=k; i<row; i++)
+        {
+            if(mat[i][k]> max)
+            {
+                flag=true;
+                max=mat[i][k];
+                num=i;
+            }
+        }
+        if(!flag) num=k;
+        if(max == 0) throw unsingular_mat;
+        else
+        {
+            if( k != num)
+            {
+                fraction temp;
+                for(int i=0; i<col; i++)
+                {
+                    temp=mat[k][i];
+                    mat[k][i]=mat[num][i];
+                    mat[num][i]=temp;
+                }
+            }
+        }
+        for(int i=k; i<row-1; i++)
+        {
+            fraction temp=mat[i+1][k];
+            for(int j=k; j<col; j++)
+            {
+                mat[i+1][j] -= (( temp / mat[k][k]) * mat[k][j]);
+            }
+        }
+        k++;
+        flag=false;
+        }
+}
+
+void  matrix :: equation()
+{
+    int row = mat.size();
+    int col = mat[0].size();
+    for(int i=0; i<row; i++)
+    {
+        fraction temp1=mat[i][i];
+        for(int j=i; j<col; j++)
+        {
+            mat[i][j] /=temp1;
+        }
+    }
+    for(int i=1; i<row; i++)
+    {
+        for(int j=i-1; j>=0; j--)
+        {
+            fraction temp2=mat[j][i];
+            for(int h=i; h<col; h++)
+            {
+                mat[j][h] -=(temp2*mat[i][h]);
+            }
+        }
+    }
+    cout<<"answer is "<<endl;
+    char ch;
+    if(row > 3)
+    {
+        ch='a';
+    }
+    else
+    {
+        ch='x';
+    }
+    for(int i=0; i<row; i++)
+    {
+        cout<< ch <<"= "<<mat[i][row]<<endl;
+        ch = ch +1;
+    }
+}
+
+matrix& matrix ::operator = (const matrix& other)
+{
+    int row = other.mat.size();
+    int col = other.mat[0].size();
+    mat.resize(row);
+    for (int x =0; x <row; x++)
+        mat[x].resize(col);
+    for (int i =0; i <row; i++)
+    {
+        for(int j=0; j<col; j++)
+            mat[i][j] = other.mat[i][j];
+    }
+    return *this;
+}
+
+istream& operator>>(istream& in, matrix &f)
+{
+    int row = f.mat.size();
+    int col = f.mat[0].size();
+    for (int i =0; i <row; i++)
+        for(int j=0; j<col; j++)
+        {
+            in >> f.mat[i][j];
+        }
+    return in;
+}
+
+ostream& operator<<(ostream& out, const matrix &f)
+{
+    int row = f.mat.size();
+    int col = f.mat[0].size();
+    for (int i =0; i <row; i++)
+    {
+        for(int j=0; j<col; j++)
+        {
+            out << right << setw(8) << f.mat[i][j];
+        }
+        out <<"\r\n";
+    }
+    return out;
+}
+
+matrix operator + (const matrix& one, const matrix& two)
+{
+    int row = one.mat.size();
+    int col = one.mat[0].size();
+    matrix three(row,col);
+    if(row == two.mat.size() && col == two.mat[0].size())
+    {
+        for (int i =0; i <row; i++)
+            for(int j=0; j<col; j++)
+            {
+                three.mat[i][j] = one.mat[i][j] + two.mat[i][j];
+            }
+    }
+    else
+    {
+        throw not_same_size;
+        exit(0);
+    }
+    return three;
+}
+
+matrix operator *(const matrix& one, const matrix& two)
+{
+    int row = one.mat.size();
+    int col = two.mat[0].size();
+    int turns =one.mat[0].size();
+    matrix three(row,col);
+    if(one.mat[0].size() == two.mat.size())
+    {
+        for(int i =0; i <row; i++)
+            for(int j=0; j<col; j++)
+                for(int k=0; k<turns ; k++)
+                    three.mat[i][j] += one.mat[i][k]* two.mat[k][j];
+    }
+    else
+    {
+        throw wrong_size;
+        exit(0);
+    }
+    return three;
+}

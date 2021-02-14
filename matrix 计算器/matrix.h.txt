@@ -1,0 +1,68 @@
+#ifndef MATRIX
+#define MATRIX
+#include <vector>
+#include <fstream>
+
+enum wrong {not_same_size, wrong_size, unable, unsingular_mat};
+
+using namespace std;
+
+class fraction
+{
+    public:
+        fraction();
+        fraction(int a, int b=1);
+        ~fraction();
+        fraction(const fraction &other);
+
+        fraction& operator=(const int& other);
+        fraction& operator=(const double& other);
+        fraction& operator=(const fraction& other);
+
+        fraction& operator-=(const fraction& other);
+        fraction& operator/=(const fraction& other);
+        fraction& operator+=(const fraction& other);
+
+        friend bool operator==(const fraction &x, const fraction &y);
+        friend bool operator!=(const fraction &x, const fraction &y);
+        friend bool operator>(const fraction &x, const fraction &y);
+
+        friend fraction operator/(const fraction &x, const fraction &y);
+        friend fraction operator+(const fraction &x, const fraction &y);
+        friend fraction operator*(const fraction &x, const fraction &y);
+
+        friend istream& operator>>(istream& in, fraction &f);
+        friend ostream& operator<<(ostream& out, const fraction &f);
+
+        friend class matrix;
+
+        void reduce();
+    private:
+        int num, denom;
+        int gcd(int p, int q);
+};
+
+class matrix
+{
+    public:
+    matrix(int row=2, int col=2);
+    ~matrix();
+
+    matrix& operator =(const matrix& other);
+
+    void triangle();
+    void equation();
+
+    friend istream& operator>>(istream& in, matrix &f);
+    friend ostream& operator<<(ostream& out, const matrix &f);
+
+    friend matrix operator +(const matrix& one, const matrix& two);
+    friend matrix operator *(const matrix& one, const matrix& two);
+
+    private:
+    vector<vector<fraction>> mat;
+
+};
+
+#endif // MATRIX
+
